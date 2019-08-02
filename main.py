@@ -58,7 +58,7 @@ def get_cloud_pipeline_options():
         'job_name': 'test',
         'staging_location': "gs://STAGING/",
         'temp_location':  "gs://TEMP/",
-        'project': "PROJECTID",
+        'project': "PROJECT",
         'region': 'europe-west1',
         'autoscaling_algorithm' :  'THROUGHPUT_BASED',
         'max_num_workers':7,
@@ -74,9 +74,10 @@ def run(argv=None):
       '--cloud', required=True,
       help="Do you like to go cloud")
     parser.add_argument(
-      '--input_topic'
+      '--topic'
       ,required=False
-      ,help='"projects/<PROJECTID>/topics/<TOPIC>".')
+      ,help='"projects/<PROJECTID>/topics/<TOPIC>".'
+      ,default = "projects/iotpubsub-1536350750202/topics/SklearnStreamingDataflow")
     known_args, pipeline_args = parser.parse_known_args(argv)
 
     if known_args.cloud == "y":
@@ -87,7 +88,7 @@ def run(argv=None):
     pipeline_options.view_as(StandardOptions).streaming = True
     p = beam.Pipeline(options=pipeline_options)
 
-    input_pubsub = ( p | 'Read from PubSub 2' >> beam.io.gcp.pubsub.ReadFromPubSub(topic=known_args.input_topic,with_attributes=True))
+    input_pubsub = ( p | 'Read from PubSub 2' >> beam.io.gcp.pubsub.ReadFromPubSub(topic=known_args.topic,with_attributes=True))
     _ = (input_pubsub | "format the data correctly" >> beam.ParDo(FormatInput())
                   | "transform the data" >> beam.ParDo(PredictSklearn())
                   | "print the data" >> beam.Map(printy)
