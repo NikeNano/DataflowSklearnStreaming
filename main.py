@@ -16,7 +16,7 @@ model = None
 def download_blob(bucket_name, source_blob_name):
     """Downloads a blob from the bucket."""
     destination_file_name = source_blob_name
-    storage_client = storage.Client()
+    storage_client = storage.Client("iotpubsub-1536350750202")
     bucket = storage_client.get_bucket(bucket_name)
     blob = bucket.blob(source_blob_name)
 
@@ -27,7 +27,7 @@ class FormatInput(beam.DoFn):
     """ Format the input to the desired shape"""
     def process(self,element):
         output = {
-            "data": eval(element.data),
+            "data": eval(element.attributes["data"]),
             "process_time":str(datetime.datetime.now()).encode('utf-8'),
         }
         return [output]
@@ -48,6 +48,7 @@ class PredictSklearn(beam.DoFn):
         return [element]
 
 def printy(x):
+        print(x)
         logging.info("predictions:{}".format(x))
 
 def get_cloud_pipeline_options():
