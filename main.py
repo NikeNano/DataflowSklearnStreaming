@@ -16,7 +16,7 @@ model = None
 def download_blob(bucket_name, source_blob_name):
     """Downloads a blob from the bucket."""
     destination_file_name = source_blob_name
-    storage_client = storage.Client("iotpubsub-1536350750202")
+    storage_client = storage.Client("PROJECT_HERE")
     bucket = storage_client.get_bucket(bucket_name)
     blob = bucket.blob(source_blob_name)
 
@@ -78,7 +78,7 @@ def run(argv=None):
       '--topic'
       ,required=False
       ,help='"projects/<PROJECTID>/topics/<TOPIC>".'
-      ,default = "projects/iotpubsub-1536350750202/topics/SklearnStreamingDataflow")
+      ,default = "projects/PROJECT_HERE/topics/SklearnStreamingDataflow")
     known_args, pipeline_args = parser.parse_known_args(argv)
 
     if known_args.cloud == "y":
