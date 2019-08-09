@@ -7,7 +7,7 @@ setup(
     version='0.2',
     author='NikeNano',
     author_email='',
-    install_requires=["joblib==0.13.2","DateTime", "google-cloud-storage"],
+    install_requires=["joblib==0.13.2","DateTime", "google-cloud-storage", "scikit-learn"],
     packages=find_packages(exclude=['data']),
     description='Dataflow sklearn streaming',
     url=''

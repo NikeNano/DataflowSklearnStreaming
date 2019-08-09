@@ -1,22 +1,24 @@
 import argparse
 import logging
 import datetime
+import logging
+import pickle
 
 import apache_beam as beam
 import apache_beam.transforms.window as window
 
 from google.cloud import storage
-from joblib import load
 from apache_beam.options.pipeline_options import PipelineOptions
 from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.options.pipeline_options import StandardOptions
+from sklearn.ensemble import RandomForestClassifier
 
 model = None
 
 def download_blob(bucket_name, source_blob_name):
     """Downloads a blob from the bucket."""
     destination_file_name = source_blob_name
-    storage_client = storage.Client("PROJECT_HERE")
+    storage_client = storage.Client("iotpubsub-1536350750202")
     bucket = storage_client.get_bucket(bucket_name)
     blob = bucket.blob(source_blob_name)
 
@@ -27,7 +29,7 @@ class FormatInput(beam.DoFn):
     """ Format the input to the desired shape"""
     def process(self,element):
         output = {
-            "data": eval(element.attributes["data"]),
+            "data": eval(element.data),
             "process_time":str(datetime.datetime.now()).encode('utf-8'),
         }
         return [output]
@@ -39,9 +41,10 @@ class PredictSklearn(beam.DoFn):
         self._model = None
 
     def setup(self):
-        model_name = "model.joblib"
+        logging.info("Do it start up")
+        model_name = "rf_model.sav"
         download_blob(bucket_name="dataflowsklearnstreaming",source_blob_name=model_name)
-        self._model = joblib.load(model_name)
+        self._model = pickle.load(open(model_name, 'rb'))
 
     def process(self,element):
         element["prediction"] = self._model.predict(element["data"])
@@ -56,10 +59,10 @@ def get_cloud_pipeline_options():
     """
     options = {
         'runner': 'DataflowRunner',
-        'job_name': 'test',
-        'staging_location': "gs://STAGING/",
-        'temp_location':  "gs://TEMP/",
-        'project': "PROJECT",
+        'job_name': 'streaming5',
+        'staging_location': "gs://dataflowsklearnstreaming/",
+        'temp_location':  "gs://dataflowsklearnstreaming/",
+        'project': "iotpubsub-1536350750202",
         'region': 'europe-west1',
         'autoscaling_algorithm' :  'THROUGHPUT_BASED',
         'max_num_workers':7,
@@ -78,7 +81,7 @@ def run(argv=None):
       '--topic'
       ,required=False
       ,help='"projects/<PROJECTID>/topics/<TOPIC>".'
-      ,default = "projects/PROJECT_HERE/topics/SklearnStreamingDataflow")
+      ,default = "projects/iotpubsub-1536350750202/topics/SklearnStreamingDataflow")
     known_args, pipeline_args = parser.parse_known_args(argv)
 
     if known_args.cloud == "y":
