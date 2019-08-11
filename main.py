@@ -13,6 +13,9 @@ from apache_beam.options.pipeline_options import SetupOptions
 from apache_beam.options.pipeline_options import StandardOptions
 from sklearn.ensemble import RandomForestClassifier
 
+
+
+
 model = None
 
 def download_blob(bucket_name, source_blob_name):
@@ -41,7 +44,7 @@ class PredictSklearn(beam.DoFn):
         self._model = None
 
     def setup(self):
-        logging.info("Do it start up")
+        logging.info("Do it start up, BRAAA")
         model_name = "rf_model.sav"
         download_blob(bucket_name="dataflowsklearnstreaming",source_blob_name=model_name)
         self._model = pickle.load(open(model_name, 'rb'))
@@ -64,7 +67,7 @@ def get_cloud_pipeline_options():
         'temp_location':  "gs://dataflowsklearnstreaming/",
         'project': "iotpubsub-1536350750202",
         'region': 'europe-west1',
-        'autoscaling_algorithm' :  'THROUGHPUT_BASED',
+        'autoscaling_algorithm' : 'THROUGHPUT_BASED',
         'max_num_workers':7,
         'setup_file': './setup.py',
     }
@@ -75,7 +78,7 @@ def run(argv=None):
     """Build and run the pipeline."""
     parser = argparse.ArgumentParser()
     parser.add_argument(
-      '--cloud', required=True,
+      '--cloud', required=False,
       help="Do you like to go cloud")
     parser.add_argument(
       '--topic'
@@ -84,13 +87,18 @@ def run(argv=None):
       ,default = "projects/iotpubsub-1536350750202/topics/SklearnStreamingDataflow")
     known_args, pipeline_args = parser.parse_known_args(argv)
 
-    if known_args.cloud == "y":
-        pipeline_options = get_cloud_pipeline_options()
-    else:
-        pipeline_options = PipelineOptions(pipeline_args)
-    pipeline_options.view_as(SetupOptions).save_main_session = True
-    pipeline_options.view_as(StandardOptions).streaming = True
-    p = beam.Pipeline(options=pipeline_options)
+    #if known_args.cloud == "y":
+    #    pipeline_options = get_cloud_pipeline_options()
+    #else:
+    #    pipeline_options = PipelineOptions(pipeline_args)
+    #pipeline_options.view_as(SetupOptions).save_main_session = True
+    #pipeline_options.view_as(StandardOptions).streaming = True
+    options = {
+    "runner" : "PortableRunner",
+    "job_endpoint" : "localhost:8099"
+    }
+    options_flink = beam.pipeline.PipelineOptions(flags=[], **options)
+    p = beam.Pipeline(options=options_flink)
 
     input_pubsub = ( p | 'Read from PubSub 2' >> beam.io.gcp.pubsub.ReadFromPubSub(topic=known_args.topic,with_attributes=True))
     _ = (input_pubsub | "format the data correctly" >> beam.ParDo(FormatInput())
@@ -98,7 +106,7 @@ def run(argv=None):
                   | "print the data" >> beam.Map(printy)
         )
     result = p.run()
-    result.wait_until_finish()
+    #result.wait_until_finish()
 
 
 if __name__ == '__main__':
